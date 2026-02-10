@@ -84,25 +84,40 @@ resource "google_compute_instance" "dask_node" {
     apt-get install -y python3-pip python3.10-venv
     
     # Create venv and install packages
-    cd /home/zicong_google_com
-    python3 -m venv venv
-    ./venv/bin/pip install "dask[distributed]" numpy scipy
+    mkdir -p /opt/dask-venv
+    python3 -m venv /opt/dask-venv
+    /opt/dask-venv/bin/pip install "dask[distributed]" numpy scipy
     
     # Start Dask components based on node index
     if [[ $(hostname) == *"dask-node-0"* ]]; then
       echo "Starting dask-scheduler..."
-      nohup ./venv/bin/dask scheduler > /var/log/dask-scheduler.log 2>&1 &
+      nohup /opt/dask-venv/bin/dask scheduler > /var/log/dask-scheduler.log 2>&1 &
       
+      echo "Waiting for scheduler to start locally..."
+      for i in {1..30}; do
+        if /opt/dask-venv/bin/python3 -c "import socket; s = socket.socket(); s.connect(('localhost', 8786))" > /dev/null 2>&1; then
+          echo "Scheduler is up!"
+          break
+        fi
+        echo "Waiting for scheduler... ($i/30)"
+        sleep 2
+      done
+
       echo "Starting dask-worker on scheduler node..."
-      nohup ./venv/bin/dask worker localhost:8786 > /var/log/dask-worker.log 2>&1 &
+      nohup /opt/dask-venv/bin/dask worker localhost:8786 > /var/log/dask-worker.log 2>&1 &
     else
-      echo "Starting dask-worker and connecting to dask-node-0..."
-      # Retry connecting to the scheduler until it's available
-      until nohup ./venv/bin/dask worker dask-node-0:8786 > /var/log/dask-worker.log 2>&1 &
-      do
-        echo "Scheduler not available yet, retrying in 5 seconds..."
+      echo "Waiting for dask-node-0:8786 to be available..."
+      for i in {1..60}; do
+        if /opt/dask-venv/bin/python3 -c "import socket; s = socket.socket(); s.connect(('dask-node-0', 8786))" > /dev/null 2>&1; then
+          echo "Scheduler is available at dask-node-0!"
+          break
+        fi
+        echo "Waiting for dask-node-0:8786... ($i/60)"
         sleep 5
       done
+
+      echo "Starting dask-worker and connecting to dask-node-0..."
+      nohup /opt/dask-venv/bin/dask worker dask-node-0:8786 > /var/log/dask-worker.log 2>&1 &
     fi
     echo "Dask cluster setup script completed."
   EOT

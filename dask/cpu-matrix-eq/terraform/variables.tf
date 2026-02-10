@@ -20,3 +20,8 @@ variable "machine_type" {
   type        = string
   default     = "e2-medium"
 }
+
+variable "gcs_output_path" {
+  description = "The GCS path to save the results"
+  type        = string
+}
