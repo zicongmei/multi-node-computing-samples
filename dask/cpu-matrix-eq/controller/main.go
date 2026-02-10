@@ -119,7 +119,8 @@ func main() {
 
 	// 4. Save the result to GCS
 	fmt.Println("Step 4: Saving result to GCS...")
-	fullGCSPath := fmt.Sprintf("%s/solver_output.txt", outputs.GCSOutputPath.Value)
+	timestamp := time.Now().Format("20060102_150405")
+	fullGCSPath := fmt.Sprintf("%s/solver_output_%s.txt", outputs.GCSOutputPath.Value, timestamp)
 	if err := runCmd(".", "gcloud", "storage", "cp", resultFile, fullGCSPath); err != nil {
 		log.Fatalf("Failed to upload result to GCS: %v", err)
 	}
