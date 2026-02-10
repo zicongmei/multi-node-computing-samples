@@ -12,7 +12,7 @@ variable "zone" {
 variable "num_vm" {
   description = "The number of VMs to provision"
   type        = number
-  default     = 3
+  default     = 4
 }
 
 variable "machine_type" {
