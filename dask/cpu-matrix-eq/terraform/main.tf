@@ -76,9 +76,31 @@ resource "google_compute_instance" "dask_node" {
 
   metadata_startup_script = <<-EOT
     #!/bin/bash
+    # Redirect stdout and stderr to the serial console
+    exec > >(tee /dev/ttyS0 | logger -t user-data -s 2>/dev/console) 2>&1
+    
+    echo "Starting Dask cluster setup..."
     apt-get update
     apt-get install -y python3-pip
     pip3 install "dask[distributed]" numpy
+    
+    # Start Dask components based on node index
+    if [[ $(hostname) == *"dask-node-0"* ]]; then
+      echo "Starting dask-scheduler..."
+      dask-scheduler > /var/log/dask-scheduler.log 2>&1 &
+      
+      echo "Starting dask-worker on scheduler node..."
+      dask-worker localhost:8786 > /var/log/dask-worker.log 2>&1 &
+    else
+      echo "Starting dask-worker and connecting to dask-node-0..."
+      # Retry connecting to the scheduler until it's available
+      until dask-worker dask-node-0:8786 > /var/log/dask-worker.log 2>&1 &
+      do
+        echo "Scheduler not available yet, retrying in 5 seconds..."
+        sleep 5
+      done
+    fi
+    echo "Dask cluster setup script completed."
   EOT
 
   tags = ["dask"]

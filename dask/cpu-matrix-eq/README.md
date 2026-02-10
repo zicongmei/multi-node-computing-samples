@@ -27,28 +27,34 @@ terraform apply -var="project_id=<PROJECT_ID>" -var="zone=us-central1-a" -var="n
 
 Terraform will output the public and private IPs of the created VMs.
 
-### 2. Set Up Dask Cluster
+### 2. Accessing the VMs
 
-Identify one VM to be the **Scheduler** and the others to be **Workers**.
+You can SSH into the VMs using the `gcloud` command:
 
-#### On the Scheduler VM:
-SSH into the first VM and start the scheduler:
 ```bash
-dask-scheduler
+gcloud compute ssh dask-node-0 --zone=us-central1-a
 ```
 
-#### On the Worker VMs:
-SSH into each worker VM and start the worker, pointing it to the scheduler's **private IP**:
+### 3. Set Up Dask Cluster
+
+The cluster is automatically set up via the `metadata_startup_script` in the Terraform configuration:
+- **dask-node-0**: Starts the `dask-scheduler`.
+- **Other nodes**: Start a `dask-worker` connected to `dask-node-0`.
+
+You can check the logs on each VM at `/var/log/dask-scheduler.log` or `/var/log/dask-worker.log`.
+
+### 4. Run the Solver
+
+You can run the solver from any of the VMs. For example, SSH into `dask-node-0`:
+
 ```bash
-dask-worker <SCHEDULER_PRIVATE_IP>:8786
+gcloud compute ssh dask-node-0 --zone=us-central1-a
 ```
 
-### 3. Run the Solver
-
-You can run the solver from your local machine (if you have Dask installed and can reach the public IP) or from one of the VMs.
+Then run the solver (the scheduler is running locally on this node):
 
 ```bash
-python3 solver.py --scheduler <SCHEDULER_PUBLIC_IP_OR_PRIVATE_IP>:8786 --size 10000
+python3 solver.py --scheduler localhost:8786 --size 10000
 ```
 
 ## Monitoring
