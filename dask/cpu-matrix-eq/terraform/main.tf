@@ -81,20 +81,24 @@ resource "google_compute_instance" "dask_node" {
     
     echo "Starting Dask cluster setup..."
     apt-get update
-    apt-get install -y python3-pip
-    pip3 install "dask[distributed]" numpy
+    apt-get install -y python3-pip python3.10-venv
+    
+    # Create venv and install packages
+    cd /home/zicong_google_com
+    python3 -m venv venv
+    ./venv/bin/pip install "dask[distributed]" numpy scipy
     
     # Start Dask components based on node index
     if [[ $(hostname) == *"dask-node-0"* ]]; then
       echo "Starting dask-scheduler..."
-      dask-scheduler > /var/log/dask-scheduler.log 2>&1 &
+      nohup ./venv/bin/dask scheduler > /var/log/dask-scheduler.log 2>&1 &
       
       echo "Starting dask-worker on scheduler node..."
-      dask-worker localhost:8786 > /var/log/dask-worker.log 2>&1 &
+      nohup ./venv/bin/dask worker localhost:8786 > /var/log/dask-worker.log 2>&1 &
     else
       echo "Starting dask-worker and connecting to dask-node-0..."
       # Retry connecting to the scheduler until it's available
-      until dask-worker dask-node-0:8786 > /var/log/dask-worker.log 2>&1 &
+      until nohup ./venv/bin/dask worker dask-node-0:8786 > /var/log/dask-worker.log 2>&1 &
       do
         echo "Scheduler not available yet, retrying in 5 seconds..."
         sleep 5
