@@ -43,9 +43,17 @@ The cluster is automatically set up via the `metadata_startup_script` in the Ter
 
 You can check the logs on each VM at `/var/log/dask-scheduler.log` or `/var/log/dask-worker.log`.
 
-### 4. Run the Solver
+### 4. Copy Scripts to the Cluster
 
-You can run the solver from any of the VMs. For example, SSH into `dask-node-0`:
+Copy the `scripts` directory to `dask-node-0`:
+
+```bash
+gcloud compute scp --recurse scripts dask-node-0:~/ --zone=us-central1-a
+```
+
+### 5. Run the Solver
+
+You can run the solver from `dask-node-0`:
 
 ```bash
 gcloud compute ssh dask-node-0 --zone=us-central1-a
@@ -54,7 +62,7 @@ gcloud compute ssh dask-node-0 --zone=us-central1-a
 Then run the solver (the scheduler is running locally on this node):
 
 ```bash
-python3 solver.py --scheduler localhost:8786 --size 10000
+python3 scripts/solver.py --scheduler localhost:8786 --size 10000
 ```
 
 ## Monitoring
