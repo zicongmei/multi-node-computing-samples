@@ -53,7 +53,9 @@ gcloud compute scp --recurse scripts dask-node-0:~/ --zone=us-central1-a
 
 ### 5. Run the Solver
 
-You can run the solver from `dask-node-0`:
+#### Option A: Running from the Scheduler Node (dask-node-0)
+
+SSH into `dask-node-0`:
 
 ```bash
 gcloud compute ssh dask-node-0 --zone=us-central1-a
@@ -63,6 +65,14 @@ Then run the solver (the scheduler is running locally on this node):
 
 ```bash
 python3 scripts/solver.py --scheduler localhost:8786 --size 10000
+```
+
+#### Option B: Running from your local Workstation
+
+You can also run the solver directly from your workstation if you have Dask installed. You will need to use the **Public IP** of `dask-node-0` (found in the Terraform output).
+
+```bash
+python3 dask/cpu-matrix-eq/scripts/solver.py --scheduler <SCHEDULER_PUBLIC_IP>:8786 --size 10000
 ```
 
 ## Monitoring
